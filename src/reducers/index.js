@@ -1,9 +1,57 @@
 const initialState = {
-  books: [],
-  loading: true,
-  error: null,
-  cartItems: [],
-  orderTotal: 190
+  bookList: {
+    books: [],
+    loading: true,
+    error: null
+  },
+  shoppingCart: {
+    cartItems: [],
+    orderTotal: 0
+  }
+};
+
+const updateBookList = (state, action) => {
+  switch (action.type) {
+    case "FETCH_BOOKS_REQUEST":
+      return {
+        books: [],
+        loading: true,
+        error: null
+      };
+    case "FETCH_BOOKS_SUCCESS":
+      return {
+        books: action.payload,
+        loading: false,
+        error: null
+      };
+    case "FETCH_BOOKS_FAILURE":
+      return {
+        books: [],
+        loading: false,
+        error: action.payload
+      };
+    default:
+      return state;
+  }
+};
+
+const updateSoppingCart = (state, action) => {
+  switch (action.type) {
+    case "BOOK_ADDED_TO_CART":
+      return updateOrder(state, action.payload, 1);
+
+    case "BOOK_REMOVED_FROM_CART":
+      return updateOrder(state, action.payload, -1);
+
+    case "ALL_BOOKS_REMOVED_FROM_CART":
+      const item = state.shoppingCart.cartItems.find(
+        ({ id }) => id === action.payload
+      );
+      return updateOrder(state, action.payload, -item.count);
+
+    default:
+      return state;
+  }
 };
 
 const updateCartItems = (cartItems, item, idx) => {
@@ -28,14 +76,17 @@ const updateCartItem = (book, item = {}, qty) => {
 };
 
 const updateOrder = (state, bookId, qty) => {
-  const { books, cartItems } = state;
+  const {
+    bookList: { books },
+    shoppingCart: { cartItems }
+  } = state;
   const book = books.find(({ id }) => id === bookId);
   const itemIdx = cartItems.findIndex(({ id }) => id === bookId);
   const item = cartItems[itemIdx];
 
   const newItem = updateCartItem(book, item, qty);
   return {
-    ...state,
+    orderTotal: 0,
     cartItems: updateCartItems(cartItems, newItem, itemIdx)
   };
 };
@@ -43,36 +94,19 @@ const updateOrder = (state, bookId, qty) => {
 const reducer = (state = initialState, action) => {
   switch (action.type) {
     case "FETCH_BOOKS_REQUEST":
-      return {
-        ...state,
-        books: [],
-        loading: true,
-        error: null
-      };
     case "FETCH_BOOKS_SUCCESS":
-      return {
-        ...state,
-        books: action.payload,
-        loading: false,
-        error: null
-      };
     case "FETCH_BOOKS_FAILURE":
       return {
         ...state,
-        books: [],
-        loading: false,
-        error: action.payload
+        bookList: updateBookList(state, action)
       };
     case "BOOK_ADDED_TO_CART":
-      return updateOrder(state, action.payload, 1);
-
     case "BOOK_REMOVED_FROM_CART":
-      return updateOrder(state, action.payload, -1);
-
     case "ALL_BOOKS_REMOVED_FROM_CART":
-      const item = state.cartItems.find(({ id }) => id === action.payload);
-      return updateOrder(state, action.payload, -item.count);
-
+      return {
+        ...state,
+        shoppingCart: updateSoppingCart(state, action)
+      };
     default:
       return state;
   }
